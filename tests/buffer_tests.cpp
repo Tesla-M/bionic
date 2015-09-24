@@ -393,7 +393,7 @@ void RunSrcDstBufferOverreadTest(void (*test_func)(uint8_t*, uint8_t*, size_t)) 
   }
   ASSERT_TRUE(mprotect(&memory[pagesize], pagesize, PROT_READ | PROT_WRITE) == 0);
   free(memory);
-  delete dst_buffer;
+  delete[] dst_buffer;
 }
 
 void RunCmpBufferOverreadTest(
