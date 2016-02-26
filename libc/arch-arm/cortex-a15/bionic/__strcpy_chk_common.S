@@ -29,7 +29,7 @@
 #include <private/bionic_asm.h>
 
     .syntax unified
-    .fpu    neon
+
     .thumb
     .thumb_func
 
@@ -45,12 +45,40 @@ ENTRY(__strcpy_chk)
     mov     lr, r2
     mov     r0, r1
 
-    ands    r3, r0, #7
-    bne     .L_align_src
+    ands    r3, r1, #7
+    beq     .L_mainloop
+
+    // Align to a double word (64 bits).
+    rsb     r3, r3, #8
+    lsls    ip, r3, #31
+    beq     .L_align_to_32
+
+    ldrb    r2, [r0], #1
+    cbz     r2, .L_update_count_and_finish
+
+.L_align_to_32:
+    bcc     .L_align_to_64
+    ands    ip, r3, #2
+    beq     .L_align_to_64
+
+    ldrb    r2, [r0], #1
+    cbz     r2, .L_update_count_and_finish
+    ldrb    r2, [r0], #1
+    cbz     r2, .L_update_count_and_finish
+
+.L_align_to_64:
+    tst     r3, #4
+    beq     .L_mainloop
+    ldr     r3, [r0], #4
+
+    sub     ip, r3, #0x01010101
+    bic     ip, ip, r3
+    ands    ip, ip, #0x80808080
+    bne     .L_zero_in_second_register
 
     .p2align 2
 .L_mainloop:
-    ldmia   r0!, {r2, r3}
+    ldrd    r2, r3, [r0], #8
 
     pld     [r0, #64]
 
@@ -65,116 +93,76 @@ ENTRY(__strcpy_chk)
     bne     .L_zero_in_second_register
     b       .L_mainloop
 
+.L_update_count_and_finish:
+    sub     r3, r0, r1
+    sub     r3, r3, #1
+    b       .L_check_size
+
 .L_zero_in_first_register:
     sub     r3, r0, r1
-    // Check for zero in byte 0.
     lsls    r2, ip, #17
-    beq     .L_check_byte1_reg1
+    bne     .L_sub8_and_finish
+    bcs     .L_sub7_and_finish
+    lsls    ip, ip, #1
+    bne     .L_sub6_and_finish
 
+    sub     r3, r3, #5
+    b       .L_check_size
+
+.L_sub8_and_finish:
     sub     r3, r3, #8
     b       .L_check_size
 
-.L_check_byte1_reg1:
-    bcc     .L_check_byte2_reg1
-
+.L_sub7_and_finish:
     sub     r3, r3, #7
     b       .L_check_size
 
-.L_check_byte2_reg1:
-    // Check for zero in byte 2.
-    tst     ip, #0x800000
-    it      ne
-    subne   r3, r3, #6
-    bne     .L_check_size
-    sub     r3, r3, #5
+.L_sub6_and_finish:
+    sub     r3, r3, #6
     b       .L_check_size
 
 .L_zero_in_second_register:
     sub     r3, r0, r1
-    // Check for zero in byte 0.
     lsls    r2, ip, #17
-    beq     .L_check_byte1_reg2
+    bne     .L_sub4_and_finish
+    bcs     .L_sub3_and_finish
+    lsls    ip, ip, #1
+    bne     .L_sub2_and_finish
 
+    sub     r3, r3, #1
+    b       .L_check_size
+
+.L_sub4_and_finish:
     sub     r3, r3, #4
     b       .L_check_size
 
-.L_check_byte1_reg2:
-    bcc     .L_check_byte2_reg2
-
+.L_sub3_and_finish:
     sub     r3, r3, #3
     b       .L_check_size
 
-.L_check_byte2_reg2:
-    // Check for zero in byte 2.
-    tst     ip, #0x800000
-    it      ne
-    subne   r3, r3, #2
-    bne     .L_check_size
-    sub     r3, r3, #1
-    b       .L_check_size
-
-.L_align_src:
-    // Align to a double word (64 bits).
-    rsb     r3, r3, #8
-    lsls    ip, r3, #31
-    beq     .L_align_to_32
-
-    ldrb    r2, [r0], #1
-    cbz     r2, .L_done
-
-.L_align_to_32:
-    bcc     .L_align_to_64
-
-    ldrb    r2, [r0], #1
-    cbz     r2, .L_done
-    ldrb    r2, [r0], #1
-    cbz     r2, .L_done
-
-.L_align_to_64:
-    tst     r3, #4
-    beq     .L_mainloop
-    ldr     r2, [r0], #4
-
-    sub     ip, r2, #0x01010101
-    bic     ip, ip, r2
-    ands    ip, ip, #0x80808080
-    bne     .L_zero_in_second_register
-    b       .L_mainloop
-
-.L_done:
-    sub     r3, r0, r1
-    sub     r3, r3, #1
+.L_sub2_and_finish:
+    sub     r3, r3, #2
 
 .L_check_size:
     pld     [r1, #0]
     pld     [r1, #64]
     ldr     r0, [sp]
     cmp     r3, lr
-    bhs     __strcpy_chk_fail
+    bhs     .L_strcpy_chk_failed
 
     // Add 1 for copy length to get the string terminator.
     add     r2, r3, #1
 
-    // Fall through into the memcpy_base function.
-END(__strcpy_chk)
+#include MEMCPY_BASE
 
-#define MEMCPY_BASE         __strcpy_chk_memcpy_base
-#define MEMCPY_BASE_ALIGNED __strcpy_chk_memcpy_base_aligned
-#include "memcpy_base.S"
-
-ENTRY_PRIVATE(__strcpy_chk_fail)
-    .cfi_def_cfa_offset 8
-    .cfi_rel_offset r0, 0
-    .cfi_rel_offset lr, 4
-
+.L_strcpy_chk_failed:
     ldr     r0, error_message
 1:
     add     r0, pc
     bl      __fortify_fatal
-
 error_message:
     .word   error_string-(1b+4)
-END(__strcpy_chk_fail)
+END(__strcpy_chk)
 
     .data
 error_string:
