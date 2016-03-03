@@ -4,11 +4,31 @@
 # Default implementations of functions that are commonly optimized.
 #
 
-libc_common_src_files_x86 += \
-    bionic/__memcpy_chk.cpp \
-    bionic/__memset_chk.cpp \
-    bionic/__strcpy_chk.cpp \
-    bionic/__strcat_chk.cpp \
+libc_bionic_src_files_x86 += \
+    arch-x86/atom/string/sse2-memchr-atom.S \
+    arch-x86/atom/string/sse2-memrchr-atom.S \
+    arch-x86/atom/string/sse2-strchr-atom.S \
+    arch-x86/atom/string/sse2-strnlen-atom.S \
+    arch-x86/atom/string/sse2-strrchr-atom.S \
+    arch-x86/atom/string/sse2-wcschr-atom.S \
+    arch-x86/atom/string/sse2-wcsrchr-atom.S \
+    arch-x86/atom/string/sse2-wcslen-atom.S \
+    arch-x86/atom/string/sse2-wcscmp-atom.S \
+    arch-x86/silvermont/string/sse2-bcopy-slm.S \
+    arch-x86/silvermont/string/sse2-memcpy-slm.S \
+    arch-x86/silvermont/string/sse2-memmove-slm.S \
+    arch-x86/silvermont/string/sse2-memset-slm.S \
+    arch-x86/silvermont/string/sse2-stpcpy-slm.S \
+    arch-x86/silvermont/string/sse2-stpncpy-slm.S \
+    arch-x86/silvermont/string/sse2-strcpy-slm.S \
+    arch-x86/silvermont/string/sse2-strlen-slm.S \
+    arch-x86/silvermont/string/sse2-strncpy-slm.S
+
+libc_bionic_src_files_x86 += \
+    arch-x86/generic/string/memcmp.S \
+    arch-x86/generic/string/strcmp.S \
+    arch-x86/generic/string/strncmp.S \
+    arch-x86/generic/string/strcat.S
 
 libc_freebsd_src_files_x86 += \
     upstream-freebsd/lib/libc/string/wmemmove.c \
