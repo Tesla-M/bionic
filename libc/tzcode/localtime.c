@@ -383,7 +383,7 @@ tzload(register const char* name, register struct state* const sp,
     //fullname = lsp->fullname;
     up = &lsp->u.u;
 
-    sp->goback = sp->goahead = FALSE;
+    sp->goback = sp->goahead = 0;
 
     if (! name) {
         name = TZDEFAULT;
@@ -490,11 +490,11 @@ tzload(register const char* name, register struct state* const sp,
 
             ttisp = &sp->ttis[i];
             if (ttisstdcnt == 0)
-                ttisp->tt_ttisstd = FALSE;
+                ttisp->tt_ttisstd = 0;
             else {
                 ttisp->tt_ttisstd = *p++;
-                if (ttisp->tt_ttisstd != TRUE &&
-                    ttisp->tt_ttisstd != FALSE)
+                if (ttisp->tt_ttisstd != 1 &&
+                    ttisp->tt_ttisstd != 0)
                         goto oops;
             }
         }
@@ -503,11 +503,11 @@ tzload(register const char* name, register struct state* const sp,
 
             ttisp = &sp->ttis[i];
             if (ttisgmtcnt == 0)
-                ttisp->tt_ttisgmt = FALSE;
+                ttisp->tt_ttisgmt = 0;
             else {
                 ttisp->tt_ttisgmt = *p++;
-                if (ttisp->tt_ttisgmt != TRUE &&
-                    ttisp->tt_ttisgmt != FALSE)
+                if (ttisp->tt_ttisgmt != 1 &&
+                    ttisp->tt_ttisgmt != 0)
                         goto oops;
             }
         }
@@ -532,7 +532,7 @@ tzload(register const char* name, register struct state* const sp,
             register int result;
 
             up->buf[nread - 1] = '\0';
-            result = tzparse(&up->buf[1], ts, FALSE);
+            result = tzparse(&up->buf[1], ts, 0);
             if (result == 0 && ts->typecnt == 2 &&
                 sp->charcnt + ts->charcnt <= TZ_MAX_CHARS) {
                     for (i = 0; i < 2; ++i)
@@ -564,7 +564,7 @@ tzload(register const char* name, register struct state* const sp,
         for (i = 1; i < sp->timecnt; ++i)
             if (typesequiv(sp, sp->types[i], sp->types[0]) &&
                     differ_by_repeat(sp->ats[i], sp->ats[0])) {
-                sp->goback = TRUE;
+                sp->goback = 1;
                 break;
             }
             for (i = sp->timecnt - 2; i >= 0; --i)
@@ -572,7 +572,7 @@ tzload(register const char* name, register struct state* const sp,
                                sp->types[i]) &&
                         differ_by_repeat(sp->ats[sp->timecnt - 1],
                                          sp->ats[i])) {
-                    sp->goahead = TRUE;
+                    sp->goahead = 1;
                     break;
             }
         }
@@ -629,7 +629,7 @@ typesequiv(const struct state *const sp, const int a, const int b)
     if (sp == NULL ||
         a < 0 || a >= sp->typecnt ||
         b < 0 || b >= sp->typecnt)
-            result = FALSE;
+            result = 0;
     else {
         register const struct ttinfo *  ap = &sp->ttis[a];
         register const struct ttinfo *  bp = &sp->ttis[b];
@@ -971,7 +971,7 @@ tzparse(const char * name, register struct state * const sp,
         if (name == NULL)
             return -1;
     }
-    load_result = tzload(TZDEFRULES, sp, FALSE);
+    load_result = tzload(TZDEFRULES, sp, 0);
     if (load_result != 0)
         sp->leapcnt = 0;        /* so, we're off a little */
     if (*name != '\0') {
@@ -1098,7 +1098,7 @@ tzparse(const char * name, register struct state * const sp,
             /*
             ** Initially we're assumed to be in standard time.
             */
-            isdst = FALSE;
+            isdst = 0;
             theiroffset = theirstdoffset;
             /*
             ** Now juggle transition times and types
@@ -1142,10 +1142,10 @@ tzparse(const char * name, register struct state * const sp,
             */
             sp->ttis[0] = sp->ttis[1] = zttinfo;
             sp->ttis[0].tt_gmtoff = -stdoffset;
-            sp->ttis[0].tt_isdst = FALSE;
+            sp->ttis[0].tt_isdst = 0;
             sp->ttis[0].tt_abbrind = 0;
             sp->ttis[1].tt_gmtoff = -dstoffset;
-            sp->ttis[1].tt_isdst = TRUE;
+            sp->ttis[1].tt_isdst = 1;
             sp->ttis[1].tt_abbrind = stdlen + 1;
             sp->typecnt = 2;
             sp->defaulttype = 0;
@@ -1179,8 +1179,8 @@ tzparse(const char * name, register struct state * const sp,
 static void
 gmtload(struct state * const sp)
 {
-    if (tzload(gmt, sp, TRUE) != 0)
-        (void) tzparse(gmt, sp, TRUE);
+    if (tzload(gmt, sp, 1) != 0)
+        (void) tzparse(gmt, sp, 1);
 }
 
 #ifndef STD_INSPIRED
@@ -1206,7 +1206,7 @@ tzsetwall(void)
         }
     }
 #endif /* defined ALL_STATE */
-    if (tzload(NULL, lclptr, TRUE) != 0)
+    if (tzload(NULL, lclptr, 1) != 0)
         gmtload(lclptr);
     settzname();
 }
@@ -1258,8 +1258,8 @@ tzset_locked(void)
         lclptr->ttis[0].tt_abbrind = 0;
         (void) strcpy(lclptr->chars, gmt);
         lclptr->defaulttype = 0;
-    } else if (tzload(name, lclptr, TRUE) != 0)
-        if (name[0] == ':' || tzparse(name, lclptr, FALSE) != 0)
+    } else if (tzload(name, lclptr, 1) != 0)
+        if (name[0] == ':' || tzparse(name, lclptr, 0) != 0)
             (void) gmtload(lclptr);
     settzname();
 }
@@ -1399,7 +1399,7 @@ gmtsub(const time_t * const timep, const int_fast32_t offset,
         gmtptr = malloc(sizeof *gmtptr);
         gmt_is_set = gmtptr != NULL;
 #else
-        gmt_is_set = TRUE;
+        gmt_is_set = 1;
 #endif /* defined ALL_STATE */
         if (gmt_is_set)
             gmtload(gmtptr);
@@ -1637,9 +1637,9 @@ increment_overflow(int *const ip, int j)
     ** or if j < INT_MIN - i; given i < 0, INT_MIN - i cannot overflow.
     */
     if ((i >= 0) ? (j > INT_MAX - i) : (j < INT_MIN - i))
-        return TRUE;
+        return 1;
     *ip += j;
-    return FALSE;
+    return 0;
 }
 
 static int
@@ -1648,9 +1648,9 @@ increment_overflow32(int_fast32_t *const lp, int const m)
     register int_fast32_t const l = *lp;
 
     if ((l >= 0) ? (m > INT_FAST32_MAX - l) : (m < INT_FAST32_MIN - l))
-        return TRUE;
+        return 1;
     *lp += m;
-    return FALSE;
+    return 0;
 }
 
 static int
@@ -1664,9 +1664,9 @@ increment_overflow_time(time_t *tp, int_fast32_t j)
     if (! (j < 0
            ? (TYPE_SIGNED(time_t) ? time_t_min - j <= *tp : -1 - j < *tp)
            : *tp <= time_t_max - j))
-        return TRUE;
+        return 1;
     *tp += j;
-    return FALSE;
+    return 0;
 }
 
 static int
@@ -1728,7 +1728,7 @@ time2sub(struct tm * const tmp,
     time_t                t;
     struct tm             yourtm, mytm;
 
-    *okayp = FALSE;
+    *okayp = 0;
     yourtm = *tmp;
     if (do_norm_secs) {
         if (normalize_overflow(&yourtm.tm_min, &yourtm.tm_sec,
@@ -1885,7 +1885,7 @@ label:
         return WRONG;
     t = newt;
     if ((*funcp)(&t, offset, tmp, sp)) // android-changed: added sp.
-        *okayp = TRUE;
+        *okayp = 1;
     return t;
 }
 
@@ -1902,8 +1902,8 @@ time2(struct tm * const tmp,
     ** (in case tm_sec contains a value associated with a leap second).
     ** If that fails, try with normalization of seconds.
     */
-    t = time2sub(tmp, funcp, offset, okayp, FALSE, sp);
-    return *okayp ? t : time2sub(tmp, funcp, offset, okayp, TRUE, sp);
+    t = time2sub(tmp, funcp, offset, okayp, 0, sp);
+    return *okayp ? t : time2sub(tmp, funcp, offset, okayp, 1, sp);
 }
 
 static time_t
@@ -1952,11 +1952,11 @@ time1(struct tm * const tmp,
     if (sp == NULL)
         return WRONG;
     for (i = 0; i < sp->typecnt; ++i)
-        seen[i] = FALSE;
+        seen[i] = 0;
     nseen = 0;
     for (i = sp->timecnt - 1; i >= 0; --i)
         if (!seen[sp->types[i]]) {
-            seen[sp->types[i]] = TRUE;
+            seen[sp->types[i]] = 1;
             types[nseen++] = sp->types[i];
         }
     for (sameind = 0; sameind < nseen; ++sameind) {
@@ -2301,7 +2301,7 @@ __attribute__((visibility("default"))) time_t mktime_tz(struct tm* const tmp, co
 
   if (st == NULL)
     return 0;
-  if (__bionic_tzload_cached(tz, st, TRUE) != 0) {
+  if (__bionic_tzload_cached(tz, st, 1) != 0) {
     // TODO: not sure what's best here, but for now, we fall back to gmt.
     gmtload(st);
   }
