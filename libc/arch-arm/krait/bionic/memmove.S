@@ -36,7 +36,6 @@
  ***************************************************************************/
 
 #include <private/bionic_asm.h>
-#include <private/libc_events.h>
 /*
  * These can be overridden in:
  *   device/<vendor>/<board>/BoardConfig.mk
