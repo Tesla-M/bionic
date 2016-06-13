@@ -63,14 +63,9 @@
 
 ENTRY(__memcpy_chk)
         cmp     r2, r3
-        bls     memcpy
+        bhi     __memcpy_chk_fail
 
-        // Preserve lr for backtrace.
-        push    {lr}
-        .cfi_def_cfa_offset 4
-        .cfi_rel_offset lr, 0
-
-        bl      __memcpy_chk_fail
+        // Fall through to memcpy...
 END(__memcpy_chk)
 
 ENTRY(memcpy)
@@ -84,3 +79,21 @@ END(memcpy)
 #define MEMCPY_BASE         __memcpy_base
 #define MEMCPY_BASE_ALIGNED __memcpy_base_aligned
 #include "memcpy_base.S"
+
+ENTRY_PRIVATE(__memcpy_chk_fail)
+        // Preserve lr for backtrace.
+        push    {lr}
+        .cfi_def_cfa_offset 4
+        .cfi_rel_offset lr, 0
+
+        ldr     r0, error_message
+1:
+        add     r0, pc
+        bl      __fortify_fatal
+error_message:
+        .word   error_string-(1b+8)
+END(__memcpy_chk_fail)
+
+        .data
+error_string:
+        .string "memcpy: prevented write past end of buffer"

@@ -488,7 +488,7 @@ struct log_time { // Wire format
 };
 #endif
 
-static int __libc_write_log(int priority, const char* tag, const char* msg) {
+int __libc_write_log(int priority, const char* tag, const char* msg) {
 #ifdef TARGET_USES_LOGD
   int main_log_fd = __libc_open_log_socket();
   if (main_log_fd == -1) {
