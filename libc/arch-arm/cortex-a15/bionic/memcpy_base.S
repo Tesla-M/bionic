@@ -53,7 +53,11 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-.L_memcpy_base:
+ENTRY_PRIVATE(MEMCPY_BASE)
+        .cfi_def_cfa_offset 8
+        .cfi_rel_offset r0, 0
+        .cfi_rel_offset lr, 4
+
         // Assumes that n >= 0, and dst, src are valid pointers.
         // For any sizes less than 832 use the neon code that doesn't
         // care about the src alignment. This avoids any checks
@@ -164,6 +168,12 @@
         eor     r3, r0, r1
         ands    r3, r3, #0x3
         bne     .L_copy_unknown_alignment
+END(MEMCPY_BASE)
+
+ENTRY_PRIVATE(MEMCPY_BASE_ALIGNED)
+        .cfi_def_cfa_offset 8
+        .cfi_rel_offset r0, 0
+        .cfi_rel_offset lr, 4
 
         // To try and improve performance, stack layout changed,
         // i.e., not keeping the stack looking like users expect
@@ -175,7 +185,7 @@
         strd    r6, r7, [sp, #-8]!
         .cfi_adjust_cfa_offset 8
         .cfi_rel_offset r6, 0
-        .cfi_rel_offset r7, 4
+        .cfi_rel_offset r7, 0
         strd    r8, r9, [sp, #-8]!
         .cfi_adjust_cfa_offset 8
         .cfi_rel_offset r8, 0
@@ -281,27 +291,9 @@
 
         // Restore registers: optimized pop {r0, pc}
         ldrd    r8, r9, [sp], #8
-        .cfi_adjust_cfa_offset -8
-        .cfi_restore r8
-        .cfi_restore r9
         ldrd    r6, r7, [sp], #8
-        .cfi_adjust_cfa_offset -8
-        .cfi_restore r6
-        .cfi_restore r7
         ldrd    r4, r5, [sp], #8
-        .cfi_adjust_cfa_offset -8
-        .cfi_restore r4
-        .cfi_restore r5
         pop     {r0, pc}
-
-        // Put the cfi directives back for the below instructions.
-        .cfi_adjust_cfa_offset 24
-        .cfi_rel_offset r4, 0
-        .cfi_rel_offset r5, 4
-        .cfi_rel_offset r6, 8
-        .cfi_rel_offset r7, 12
-        .cfi_rel_offset r8, 16
-        .cfi_rel_offset r9, 20
 
 .L_dst_not_word_aligned:
         // Align dst to word.
@@ -323,12 +315,4 @@
 
         // Src is guaranteed to be at least word aligned by this point.
         b       .L_word_aligned
-
-        // Undo any cfi directives from above.
-        .cfi_adjust_cfa_offset -24
-        .cfi_restore r4
-        .cfi_restore r5
-        .cfi_restore r6
-        .cfi_restore r7
-        .cfi_restore r8
-        .cfi_restore r9
+END(MEMCPY_BASE_ALIGNED)
