@@ -68,7 +68,17 @@ struct abort_msg_t {
 };
 
 // Formats a message to the log (priority 'fatal'), then aborts.
+//
 __LIBC_HIDDEN__ __noreturn void __libc_fatal(const char* fmt, ...) __printflike(1, 2);
+
+//
+// Formats a message to the log (priority 'fatal'), but doesn't abort.
+// Used by the malloc implementation to ensure that debuggerd dumps memory
+// around the bad address.
+//
+
+__LIBC_HIDDEN__ void __libc_fatal_no_abort(const char* format, ...)
+    __printflike(1, 2);
 
 // Formats a message to the log (priority 'fatal'), prefixed by "FORTIFY: ", then aborts.
 __LIBC_HIDDEN__ __noreturn void __fortify_fatal(const char* fmt, ...) __printflike(1, 2);

@@ -596,6 +596,13 @@ void __fortify_fatal(const char* fmt, ...) {
   abort();
 }
 
+void __libc_fatal_no_abort(const char* format, ...) {
+   va_list args;
+   va_start(args, format);
+   __libc_fatal(format, args);
+   va_end(args);
+ }
+
 void android_set_abort_message(const char* msg) {
   ScopedPthreadMutexLocker locker(&g_abort_msg_lock);
 
